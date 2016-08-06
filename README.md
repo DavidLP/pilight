@@ -31,8 +31,8 @@ nosetests pilight
 # Usage
 ```
 from pilight import pilight
-pilight_connection = pilight.Client()  # Connect to the pilight-daemon localhost:5000
-pilight_connection.send_code(data={"protocol": [ "kaku_switch" ],  # from https://manual.pilight.org/en/api
+pilight_connection = pilight.Client()  # Connect to the pilight-daemon at localhost:5000
+pilight_connection.send_code(data={"protocol": [ "kaku_switch" ],  #  https://manual.pilight.org/en/api
                                     "id": 1,
                                     "unit": 0,
                                     "off": 1
