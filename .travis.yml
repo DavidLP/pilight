@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - 2.7
+  - 3.5
+  - pypy
+
+sudo: false
+
+install:
+  - pip install .
+
+# Run test
+script: nosetest
