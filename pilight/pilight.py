@@ -25,7 +25,7 @@ class Client(threading.Thread):
     def __init__(self, host='127.0.0.1', port=5000, timeout=1, recv_ident=None, recv_codes_only=True):
         threading.Thread.__init__(self)
         self.daemon = True
-        self.stopped = threading.Event()
+        self._stop = threading.Event()
         self.lock = threading.Lock()
         self.recv_codes_only = recv_codes_only
          
@@ -80,6 +80,11 @@ class Client(threading.Thread):
         """ Define a function to be called when data is received from the pilight daemon
         """
         self.callback = function
+        
+    def stop(self):
+        """ Called to stop the reveiver thread.
+        """
+        self._stop.set()
  
     def run(self):  # Thread for receiving data from pilight
         logging.debug('Pilight receiver thread started')
@@ -87,7 +92,7 @@ class Client(threading.Thread):
             logging.warning('No callback function set, stopping readout thread')
             return 
 
-        while not self.stopped.isSet():
+        while not self._stop.isSet():
             try:  # Read socket in a non blocking call and interpret data
                 messages = self.receive_socket.recv(1024).splitlines()  # Sometimes more than one JSON object is in the stream thus split at \n
                 for message in messages:  # Loop over received  messages
