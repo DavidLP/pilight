@@ -8,6 +8,7 @@ python:
 sudo: false
 
 install:
+  - pip install nose
   - pip install .
 
 # Run test
