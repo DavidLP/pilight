@@ -4,7 +4,8 @@
 This client interfaces with the pilight-daemon to send and receive RF codes (https://www.pilight.org/).
 
 Sending and receiving is implemented in an asychronous way. A callback function can be defined 
-that reacts on received data.
+that reacts on received data. Automatic check if the send data was transmitted by the pilight-daemon
+is implemented.
 
 All pilight-send commands can be used by this client (https://wiki.pilight.org/doku.php/psend). 
 Also check https://manual.pilight.org/en/api
