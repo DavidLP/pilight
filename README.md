@@ -7,7 +7,7 @@ Sending and receiving is implemented in an asychronous way. A callback function 
 that reacts on received data.
 
 All pilight-send commands can be used by this client (https://wiki.pilight.org/doku.php/psend). 
-Also check https://manual.pilight.org/en/api.
+Also check https://manual.pilight.org/en/api
 
 # Installation
 
@@ -27,4 +27,17 @@ You can run the unit tests to check the installation
 ```
 nosetests pilight
 ```
+
+# Usage
+```
+from pilight import pilight
+pilight_connection = pilight.Client()  # Connect to the pilight-daemon localhost:5000
+pilight_connection.send_code(data={"protocol": [ "kaku_switch" ],  # from https://manual.pilight.org/en/api
+                                    "id": 1,
+                                    "unit": 0,
+                                    "off": 1
+                                    })
+```                         
+
+Also check the examples folder.
 
