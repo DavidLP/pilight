@@ -17,17 +17,20 @@ class Client(threading.Thread):
     :param port: Port of the pilight-daemon on the host
     :param timeout: Time until a time out exception is raised when connecting
     :param recv_ident: The identification of the receiver to sucribe to the pilight-daemon topics (https://manual.pilight.org/en/api)
-    :param recv_codes_only: If True only call the callback function when the pilight-daemon received a code, not for status messages etc.
+    :param recv_codes_only: If True: only call the callback function when the pilight-daemon received a code, not for status messages etc.
+    :param veto_repeats: If True: only call the callback function when the pilight-daemon received a new code, not the same code repeated.
+                        Repeated codes happen quickly when a button is pressed.
     See 
     
     """
  
-    def __init__(self, host='127.0.0.1', port=5000, timeout=1, recv_ident=None, recv_codes_only=True):
+    def __init__(self, host='127.0.0.1', port=5000, timeout=1, recv_ident=None, recv_codes_only=True, veto_repeats=True):
         threading.Thread.__init__(self)
         self.daemon = True
         self._stop = threading.Event()
         self.lock = threading.Lock()
         self.recv_codes_only = recv_codes_only
+        self.veto_repeats = veto_repeats
          
         # Identify client (https://manual.pilight.org/en/api)
         client_identification_sender = {
@@ -100,7 +103,11 @@ class Client(threading.Thread):
                         message_dict = json.loads(message.decode())
                         if self.recv_codes_only:
                             if 'receiver' in message_dict['origin']:  # Filter: Only use receiver messages
-                                self.callback(message_dict)
+                                if self.veto_repeats:
+                                    if message_dict['repeats'] == 1:
+                                        self.callback(message_dict)
+                                else:
+                                    self.callback(message_dict)
                         else:
                             self.callback(message_dict)
             except (socket.timeout, ValueError):  # No data
