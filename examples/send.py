@@ -3,8 +3,7 @@
 from pilight import pilight
 
 if __name__ == '__main__':
-    # pilight_connection = pilight.Client(host='127.0.0.1', port=5000)  # Create new pilight connection that runs on localhost with port 5000
-    pilight_connection = pilight.Client(host='192.168.1.200', port=5000)  # Turn off to print core info and send info of the pilight-daemon  
+    pilight_connection = pilight.Client(host='127.0.0.1', port=5000)  # Create new pilight connection that runs on localhost with port 5000 
 
     # Send a good code. It is checked to be acknoledged by the piligt-daemon
     pilight_connection.send_code(data={"protocol": [ "kaku_switch" ],  # from https://manual.pilight.org/en/api
