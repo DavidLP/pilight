@@ -41,7 +41,6 @@ class Client(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
         self._stop = threading.Event()
-        self.lock = threading.Lock()
         self.recv_codes_only = recv_codes_only
         self.veto_repeats = veto_repeats
 
