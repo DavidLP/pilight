@@ -5,11 +5,12 @@ More information about pilight is here: https://www.pilight.org/.
 
 import threading
 import socket
-import logging
 import json
+import logging
 
 
 class Client(threading.Thread):
+
     """This client interfaces with the pilight-daemon (https://www.pilight.org/).
 
     Sending and receiving codes is implemented in an asychronous way.
@@ -32,6 +33,7 @@ class Client(threading.Thread):
     """
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
+
     def __init__(self, host='127.0.0.1', port=5000, timeout=1,
                  recv_ident=None, recv_codes_only=True, veto_repeats=True):
         """Initialize the pilight client.
@@ -109,15 +111,14 @@ class Client(threading.Thread):
     def stop(self):
         """Called to stop the reveiver thread."""
         self._stop.set()
-        # f you want to close the connection in a timely fashion, 
+        # f you want to close the connection in a timely fashion,
         # call shutdown() before close().
         with self._lock:  # Receive thread might use the socket
             self._receive_socket.shutdown()
             self._receive_socket.close()
-            
+
         self._send_socket.shutdown()
         self._send_socket.close()
-        
 
     def run(self):  # Thread for receiving data from pilight
         """Receiver thread function called on Client.start()."""
