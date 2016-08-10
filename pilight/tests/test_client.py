@@ -65,7 +65,20 @@ class PilightDeamonSim(threading.Thread):
             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         time.sleep(0.1)
         self.server_socket.settimeout(0.01)  # Unset blocking
-        self.server_socket.bind((host, port))
+        
+        # Try to bin to address. Maybe not available yet thus
+        # try up to 10 imes waiting up to 10 seconds.
+        # Idea from http://stackoverflow.com/questions/6380057/
+        # python-binding-socket-address-already-in-use
+        for _ in range(10):
+            try:
+                self.server_socket.bind((host, port))
+                break
+            except socket.error:
+                time.sleep(1)
+        else:  # Called when for loop not breaked
+            raise RuntimeError('Cannot create socket connection')
+        
 
         self.server_socket.listen(2)  # Allow 2 connections
         self.client_sockets = []
