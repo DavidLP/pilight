@@ -114,19 +114,17 @@ class Client(threading.Thread):
         # f you want to close the connection in a timely fashion,
         # call shutdown() before close().
         with self._lock:  # Receive thread might use the socket
-            self._receive_socket.shutdown()
-            self._receive_socket.close()
+            self.receive_socket.shutdown(socket.SHUT_RDWR)
+            self.receive_socket.close()
 
-        self._send_socket.shutdown()
-        self._send_socket.close()
+        self.send_socket.shutdown(socket.SHUT_RDWR)
+        self.send_socket.close()
 
     def run(self):  # Thread for receiving data from pilight
         """Receiver thread function called on Client.start()."""
         logging.debug('Pilight receiver thread started')
         if not self.callback:
-            logging.warning(
-                'No callback function set, stopping readout thread')
-            return
+            raise RuntimeError('No callback function set, cancel readout thread')
 
         def handle_messages(messages):
             """Call callback on each receive message."""
