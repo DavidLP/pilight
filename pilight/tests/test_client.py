@@ -23,6 +23,7 @@ SEND_DELAY = 0.1  # How often a fake code is send in seconds
 
 class PilightDaemon(object):
     """Helper class to provice a pilight-daemon."""
+
     def __init__(self, host=HOST, port=PORT, send_codes=False):
         self.host = host
         self.port = port
@@ -108,19 +109,16 @@ class PilightDeamonSim(threading.Thread):
 
     def _handle_message(self, client_socket):
         """Called in poll loop to handle messages."""
-        try:
-            messages = client_socket.recv(1024).splitlines()
-            for message in messages:  # Loop over received messages
-                if message:  # Can be empty due to splitlines
-                    message_dict = json.loads(message.decode())
-                    if message_dict["code"]["protocol"] == "daycom":
-                        client_socket.send(
-                            json.dumps({'status': 'success'}).encode())
-                    else:
-                        client_socket.send(
-                            json.dumps({'status': 'failure'}).encode())
-        except ConnectionResetError:
-            pass
+        messages = client_socket.recv(1024).splitlines()
+        for message in messages:  # Loop over received messages
+            if message:  # Can be empty due to splitlines
+                message_dict = json.loads(message.decode())
+                if message_dict["code"]["protocol"] == "daycom":
+                    client_socket.send(
+                        json.dumps({'status': 'success'}).encode())
+                else:
+                    client_socket.send(
+                        json.dumps({'status': 'failure'}).encode())
 
     def _new_client(self, client_socket):
         """Handle new client connection.
