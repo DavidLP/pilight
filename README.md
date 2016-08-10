@@ -1,5 +1,6 @@
 # A pure python client to connect to a pilight daemon
 [![Build Status](https://travis-ci.org/DavidLP/pilight.svg?branch=master)](https://travis-ci.org/DavidLP/pilight)
+[![Coverage Status](https://coveralls.io/repos/github/DavidLP/pilight/badge.svg?branch=master)](https://coveralls.io/github/DavidLP/pilight?branch=master)
 
 This client interfaces with the pilight-daemon to send and receive RF codes (https://www.pilight.org/).
 
