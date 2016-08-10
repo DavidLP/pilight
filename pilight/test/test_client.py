@@ -64,7 +64,7 @@ class TestClient(unittest.TestCase):
         with pilight_daemon.PilightDaemon(send_codes=True):
             pilight_client = pilight.Client(host=pilight_daemon.HOST, port=pilight_daemon.PORT,
                                             recv_ident=recv_ident, recv_codes_only=False)
-            pilight_client.set_callback(lambda _: None)
+            pilight_client.set_callback(_callback)
             pilight_client.start()
             time.sleep(1)
         pilight_client.stop()
