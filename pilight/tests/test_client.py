@@ -54,6 +54,7 @@ class PilightDeamonSim(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
         self._stop = threading.Event()
+        self._lock = threading.Lock()
         self.lock = threading.Lock()
 
         # Setup server socket
@@ -78,7 +79,6 @@ class PilightDeamonSim(threading.Thread):
                 time.sleep(1)
         else:  # Called when for loop not breaked
             raise RuntimeError('Cannot create socket connection')
-        
 
         self.server_socket.listen(2)  # Allow 2 connections
         self.client_sockets = []
@@ -86,24 +86,26 @@ class PilightDeamonSim(threading.Thread):
     def run(self):
         """Simple infinite loop handling socket connections."""
         last_send = datetime.datetime.now()
-        while not self._stop.wait(0.01):
-            self._handle_client_connections()
-            self._handle_client_data()
-            if self.send_codes:
-                if (((datetime.datetime.now() - last_send).total_seconds() >
-                     SEND_DELAY)):
-                    if len(self.client_sockets) > 0:
-                        self.client_sockets[0].send(
-                            json.dumps({"origin": "receiver",
-                                        "repeats": 1,
-                                        "message": {
-                                            "protocol": ["kaku_switch"],
-                                            "id": 0,
-                                            "unit": 0,
-                                            "off": 1}}).encode())
+        with self._lock:
+            while not self._stop.wait(0.01):
+                self._handle_client_connections()
+                self._handle_client_data()
+                if self.send_codes:
+                    if (((datetime.datetime.now() - 
+                          last_send).total_seconds() > SEND_DELAY)):
+                        if len(self.client_sockets) > 0:
+                            self.client_sockets[0].send(
+                                json.dumps({"origin": "receiver",
+                                            "repeats": 1,
+                                            "message": {
+                                                "protocol": ["kaku_switch"],
+                                                "id": 0,
+                                                "unit": 0,
+                                                "off": 1}}).encode())
 
         # Close client connections
         for client_socket in self.client_sockets:
+            client_socket.shutdown(socket.SHUT_RDWR)
             client_socket.close()
 
     def _handle_client_connections(self):
@@ -156,6 +158,12 @@ class PilightDeamonSim(threading.Thread):
     def stop(self):
         """Called to stop the reveiver thread."""
         self._stop.set()
+        with self._lock:  # Receive thread might use the socket
+            try:
+                self.server_socket.shutdown(socket.SHUT_RDWR)
+            except socket.error:  # Connection already shutdown
+                pass
+            self.server_socket.close()
 
 
 class TestClient(unittest.TestCase):
