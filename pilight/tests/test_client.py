@@ -22,6 +22,7 @@ SEND_DELAY = 0.1  # How often a fake code is send in seconds
 
 
 class PilightDaemon(object):
+
     """Helper class to provice a pilight-daemon."""
 
     def __init__(self, host=HOST, port=PORT, send_codes=False):
@@ -41,6 +42,7 @@ class PilightDaemon(object):
 
 
 class PilightDeamonSim(threading.Thread):
+
     """Simulate the pilight-daemon API for testing.
 
     Of cause only a few important commands are supported.
@@ -66,7 +68,7 @@ class PilightDeamonSim(threading.Thread):
             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         time.sleep(0.1)
         self.server_socket.settimeout(0.01)  # Unset blocking
-        
+
         # Try to bin to address. Maybe not available yet thus
         # try up to 10 imes waiting up to 10 seconds.
         # Idea from http://stackoverflow.com/questions/6380057/
@@ -91,7 +93,7 @@ class PilightDeamonSim(threading.Thread):
                 self._handle_client_connections()
                 self._handle_client_data()
                 if self.send_codes:
-                    if (((datetime.datetime.now() - 
+                    if (((datetime.datetime.now() -
                           last_send).total_seconds() > SEND_DELAY)):
                         if len(self.client_sockets) > 0:
                             self.client_sockets[0].send(
@@ -167,6 +169,7 @@ class PilightDeamonSim(threading.Thread):
 
 
 class TestClient(unittest.TestCase):
+
     """Initialize unit test case."""
 
     def test_client_connection(self):
