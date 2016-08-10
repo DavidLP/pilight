@@ -41,6 +41,7 @@ class Client(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
         self._stop = threading.Event()
+        self._lock = threading.Lock()
         self.recv_codes_only = recv_codes_only
         self.veto_repeats = veto_repeats
 
@@ -108,6 +109,15 @@ class Client(threading.Thread):
     def stop(self):
         """Called to stop the reveiver thread."""
         self._stop.set()
+        # f you want to close the connection in a timely fashion, 
+        # call shutdown() before close().
+        with self._lock:  # Receive thread might use the socket
+            self._receive_socket.shutdown()
+            self._receive_socket.close()
+            
+        self._send_socket.shutdown()
+        self._send_socket.close()
+        
 
     def run(self):  # Thread for receiving data from pilight
         """Receiver thread function called on Client.start()."""
@@ -137,7 +147,8 @@ class Client(threading.Thread):
             try:  # Read socket in a non blocking call and interpret data
                 # Sometimes more than one JSON object is in the stream thus
                 # split at \n
-                messages = self.receive_socket.recv(1024).splitlines()
+                with self._lock:
+                    messages = self.receive_socket.recv(1024).splitlines()
                 handle_messages(messages)
             except (socket.timeout, ValueError):  # No data
                 pass
