@@ -5,7 +5,7 @@
     commands are supported.
 
     This is a very hackish synchronous daemon that is
-    not an example for good sockets servers!
+    not an example for good socket servers!
 """
 
 import datetime
@@ -66,7 +66,7 @@ class PilightDeamonSim(threading.Thread):
         # Setup thread
         threading.Thread.__init__(self)
         self.daemon = True
-        self._stop = threading.Event()
+        self._stop_thread = threading.Event()
         self._lock = threading.Lock()
         self._data = queue.Queue()
 
@@ -101,7 +101,7 @@ class PilightDeamonSim(threading.Thread):
     def run(self):
         """Simple infinite loop handling socket connections."""
         with self._lock:
-            while not self._stop.wait(0.01):
+            while not self._stop_thread.wait(0.01):
                 self._handle_client_connections()
                 self._handle_client_data()
                 self._send_codes()
@@ -180,7 +180,7 @@ class PilightDeamonSim(threading.Thread):
 
     def stop(self):
         """Called to stop the reveiver thread."""
-        self._stop.set()
+        self._stop_thread.set()
         with self._lock:  # Receive thread might use the socket
             try:
                 self.server_socket.shutdown(socket.SHUT_RDWR)
