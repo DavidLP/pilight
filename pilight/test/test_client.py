@@ -5,7 +5,15 @@ Connects to a simulation of a pilight-daemon.
 
 import unittest
 import time
+import sys
 from mock import patch, call
+
+import logging
+
+try:
+    from StringIO import StringIO  # Python 2
+except ImportError:
+    from io import StringIO    # Python 3
 
 from pilight import pilight
 from pilight.test import pilight_daemon
@@ -111,3 +119,13 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(IOError):
             with pilight_daemon.PilightDaemon(send_codes=True):
                 pilight.Client(host=pilight_daemon.HOST, port=pilight_daemon.PORT, recv_ident=recv_ident)
+
+    def test_no_callback(self):
+        """Test for no callback defined."""
+        with pilight_daemon.PilightDaemon(send_codes=True):
+            pilight_client = pilight.Client(host=pilight_daemon.HOST, port=pilight_daemon.PORT)
+            pilight_client.start()
+            time.sleep(1)  # Give time to set thread status
+
+        self.assertFalse(pilight_client.isAlive())
+        pilight_client.stop()
