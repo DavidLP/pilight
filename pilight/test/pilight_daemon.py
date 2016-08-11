@@ -13,7 +13,12 @@ import json
 import socket
 import threading
 import time
-import Queue
+import sys
+
+if sys.version[0] == '2':
+    import Queue as queue
+else:
+    import queue as queue
 
 # Settings for the pilight-daemon simulation
 HOST = '127.0.0.1'
@@ -63,7 +68,7 @@ class PilightDeamonSim(threading.Thread):
         self.daemon = True
         self._stop = threading.Event()
         self._lock = threading.Lock()
-        self._data = Queue.Queue()
+        self._data = queue.Queue()
 
         # Setup server socket
         self.server_socket = socket.socket(
@@ -91,24 +96,32 @@ class PilightDeamonSim(threading.Thread):
         self.server_socket.listen(2)  # Allow 2 connections
         self.client_sockets = []
 
+        self.last_send = datetime.datetime.now()
+
     def run(self):
         """Simple infinite loop handling socket connections."""
-        last_send = datetime.datetime.now()
         with self._lock:
             while not self._stop.wait(0.01):
                 self._handle_client_connections()
                 self._handle_client_data()
-                if self.send_codes:
-                    if (((datetime.datetime.now() -
-                          last_send).total_seconds() > SEND_DELAY)):
-                        if len(self.client_sockets) > 0:
-                            self.client_sockets[0].sendall(
-                                json.dumps(FAKE_DATA).encode())
+                self._send_codes()
 
         # Close client connections
         for client_socket in self.client_sockets:
             client_socket.shutdown(socket.SHUT_RDWR)
             client_socket.close()
+
+    def _send_codes(self):
+        if self.send_codes:
+            if (((datetime.datetime.now() -
+                  self.last_send).total_seconds() > SEND_DELAY)):
+                if len(self.client_sockets) > 0:
+                    for i in range(10):  # Send data 10 times to simulate button press
+                        fake_data = FAKE_DATA.copy()
+                        fake_data['repeats'] = i + 1
+                        self.client_sockets[0].send(
+                            json.dumps(fake_data).encode())
+                        time.sleep(0.01)
 
     def _handle_client_connections(self):
         def _new_client(client_socket):
@@ -120,10 +133,11 @@ class PilightDeamonSim(threading.Thread):
                 for message in messages:  # Loop over received messages
                     if message:  # Can be empty due to splitlines
                         message_dict = json.loads(message.decode())
-                        if ("action" in message_dict and
-                                message_dict["action"] == "identify"):
-                            client_socket.sendall(
-                                json.dumps({'status': 'success'}).encode())
+                        if "action" in message_dict:
+                            if message_dict["action"] == "identify":
+                                client_socket.sendall(json.dumps({'status': 'success'}).encode())
+                            else:
+                                client_socket.sendall(json.dumps({'status': 'failure'}).encode())
                             break
 
             client_socket.settimeout(0.01)  # Unset blocking
