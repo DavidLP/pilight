@@ -42,7 +42,7 @@ class Client(threading.Thread):
         """
         threading.Thread.__init__(self)
         self.daemon = True
-        self._stop = threading.Event()
+        self._stop_thread = threading.Event()
         self._lock = threading.Lock()
         self.recv_codes_only = recv_codes_only
         self.veto_repeats = veto_repeats
@@ -110,7 +110,7 @@ class Client(threading.Thread):
 
     def stop(self):
         """Called to stop the reveiver thread."""
-        self._stop.set()
+        self._stop_thread.set()
         # f you want to close the connection in a timely fashion,
         # call shutdown() before close().
         with self._lock:  # Receive thread might use the socket
@@ -142,7 +142,7 @@ class Client(threading.Thread):
                     else:
                         self.callback(message_dict)
 
-        while not self._stop.isSet():
+        while not self._stop_thread.isSet():
             try:  # Read socket in a non blocking call and interpret data
                 # Sometimes more than one JSON object is in the stream thus
                 # split at \n
