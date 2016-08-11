@@ -5,15 +5,12 @@ Connects to a simulation of a pilight-daemon.
 
 import unittest
 import time
-import sys
 from mock import patch, call
-
-import logging
 
 try:
     from StringIO import StringIO  # Python 2
 except ImportError:
-    from io import StringIO    # Python 3
+    from io import StringIO  # Python 3
 
 from pilight import pilight
 from pilight.test import pilight_daemon
@@ -44,6 +41,7 @@ class TestClient(unittest.TestCase):
         with pilight_daemon.PilightDaemon() as my_daemon:
             pilight_client = pilight.Client(host=pilight_daemon.HOST, port=pilight_daemon.PORT)
             pilight_client.send_code(data={'protocol': 'daycom'})
+            time.sleep(1)
 
         self.assertEqual(my_daemon.get_data()['code'], {'protocol': 'daycom'})
 
