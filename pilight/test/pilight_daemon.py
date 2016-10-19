@@ -81,7 +81,7 @@ class PilightDeamonSim(threading.Thread):
         self.server_socket.settimeout(0.01)  # Unset blocking
 
         # Try to bin to address. Maybe not available yet thus
-        # try up to 10 imes waiting up to 10 seconds.
+        # try up to 10 times waiting up to 10 seconds.
         # Idea from http://stackoverflow.com/questions/6380057/
         # python-binding-socket-address-already-in-use
         for _ in range(10):
