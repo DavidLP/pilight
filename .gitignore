@@ -62,3 +62,5 @@ target/
 
 # Tmp files
 *tmp*
+
+scripts/pilight
