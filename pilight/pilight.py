@@ -135,7 +135,7 @@ class Client(threading.Thread):
                         # Filter: Only use receiver messages
                         if 'receiver' in message_dict['origin']:
                             if self.veto_repeats:
-                                if message_dict['repeats'] == 1:
+                                if message_dict.get('repeats', 1) == 1:
                                     self.callback(message_dict)
                             else:
                                 self.callback(message_dict)
