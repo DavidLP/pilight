@@ -158,14 +158,15 @@ class Client(threading.Thread):
                 # Sometimes more than one JSON object is in the stream thus
                 # split at \n
                 with self._lock:
-                    messages = self.receive_socket.recv(1024).splitlines()
+                    try:
+                        messages = self.receive_socket.recv(1024).splitlines()
+                    except (socket.error, e):
+                        self.connect_sender
+                        self.connect_receiver
                 handle_messages(messages)
             # FIXME handle lost connection -> reconnect
             except (socket.timeout, ValueError):  # No data
                 pass
-            except socket.error:
-                self.connect_sender
-                self.connect_receiver
         logging.debug('Pilight receiver thread stopped')
 
     def send_code(self, data, acknowledge=True):
@@ -188,8 +189,12 @@ class Client(threading.Thread):
             "code": data,
         }
 
-		# If connection is closed IOError is raised
-        self.send_socket.sendall(json.dumps(message).encode())
+        # If connection is closed IOError is raised
+        try:
+            self.send_socket.sendall(json.dumps(message).encode())
+        except socket.error:
+            self.connect_sender()
+            return
         
         if acknowledge:  # Check if command is acknowledged by pilight daemon
             messages = self.send_socket.recv(1024).splitlines()
