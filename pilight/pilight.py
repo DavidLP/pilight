@@ -44,23 +44,27 @@ class Client(threading.Thread):
         self.daemon = True
         self._stop_thread = threading.Event()
         self._lock = threading.Lock()
+        self.recv_ident = recv_ident
         self.recv_codes_only = recv_codes_only
         self.veto_repeats = veto_repeats
 
-        # Identify client (https://manual.pilight.org/en/api)
-        client_identification_sender = {
-            "action": "identify",
-            "options": {
-                # To get CPU load and RAM of pilight daemon, is neverless
-                # ignored by daemon ...
-                "core": 0,
-                "receiver": 0,  # To receive the RF data received by pilight
-                "config": 0
-            }
-        }
+        self.host = host
+        self.port = port
+        self.timeout = timeout
 
-        if recv_ident:
-            client_identification_receiver = recv_ident
+        # Open 2 socket connections, one for sending one for receiving data
+        # That is the simplest approach to allow asynchronus communication with
+        # the pilight daemon
+        self.connect_sender()
+        self.connect_receiver()
+
+        # Timeout to allow receiver thread termination and to restrict blocking
+        # connection time
+        self.callback = None
+
+    def connect_receiver(self):
+        if self.recv_ident:
+            client_identification_receiver = self.recv_ident
         else:
             client_identification_receiver = {
                 "action": "identify",
@@ -73,37 +77,44 @@ class Client(threading.Thread):
                 }
             }
 
-        # Open 2 socket connections, one for sending one for receiving data
-        # That is the simplest approach to allow asynchronus communication with
-        # the pilight daemon
         self.receive_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        # Timeout to allow receiver thread termination and to restrict blocking
-        # connection time
-        self.receive_socket.settimeout(timeout)
-        self.send_socket.settimeout(timeout)
-
-        self.receive_socket.connect((host, port))
-        self.send_socket.connect((host, port))
-
+        self.receive_socket.settimeout(self.timeout)
+        self.receive_socket.connect((self.host, self.port))
         # Identify this clients sockets at the pilight-deamon
         self.receive_socket.send(
             json.dumps(client_identification_receiver).encode())
-        answer_1 = json.loads(self.receive_socket.recv(1024).decode())
+        answer = json.loads(self.receive_socket.recv(1024).decode())
+        # Check connections are acknowledged
+        if ('success' not in answer['status']):
+            raise IOError(
+                'Connection to the pilight daemon failed. Reply %s',
+                answer)
+
+    def connect_sender(self):
+        # Identify client (https://manual.pilight.org/en/api)
+        client_identification_sender = {
+            "action": "identify",
+            "options": {
+                # To get CPU load and RAM of pilight daemon, is neverless
+                # ignored by daemon ...
+                "core": 0,
+                "receiver": 0,  # To receive the RF data received by pilight
+                "config": 0
+            }
+        }
+
+        self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.send_socket.settimeout(self.timeout)
+        self.send_socket.connect((self.host, self.port))
         self.send_socket.send(
             json.dumps(client_identification_sender).encode())
-        answer_2 = json.loads(self.send_socket.recv(1024).decode())
-
-        # Check connections are acknowledged
-        if ('success' not in answer_1['status'] or
-                'success' not in answer_2['status']):
+        answer = json.loads(self.send_socket.recv(1024).decode())
+        if ('success' not in answer['status']):
             raise IOError(
-                'Connection to the pilight daemon failed. Reply %s, %s',
-                answer_1, answer_2)
+                'Connection to the pilight daemon failed. Reply %s',
+                answer, answer)
 
-        self.callback = None
-
+   
     def set_callback(self, function):
         """Function to be called when data is received."""
         self.callback = function
@@ -135,7 +146,7 @@ class Client(threading.Thread):
                         # Filter: Only use receiver messages
                         if 'receiver' in message_dict['origin']:
                             if self.veto_repeats:
-                                if message_dict.get('repeats', 1) == 1:
+                                if message_dict['repeats'] == 1:
                                     self.callback(message_dict)
                             else:
                                 self.callback(message_dict)
@@ -149,6 +160,7 @@ class Client(threading.Thread):
                 with self._lock:
                     messages = self.receive_socket.recv(1024).splitlines()
                 handle_messages(messages)
+            # FIXME handle lost connection -> reconnect
             except (socket.timeout, ValueError):  # No data
                 pass
         logging.debug('Pilight receiver thread stopped')
@@ -174,7 +186,12 @@ class Client(threading.Thread):
         }
 
         # If connection is closed IOError is raised
-        self.send_socket.sendall(json.dumps(message).encode())
+        try:
+            self.send_socket.sendall(json.dumps(message).encode())
+        except socket.error:
+            # reconnect...
+            self.connect_sender()
+            self.send_socket.sendall(json.dumps(message).encode())
 
         if acknowledge:  # Check if command is acknowledged by pilight daemon
             messages = self.send_socket.recv(1024).splitlines()
