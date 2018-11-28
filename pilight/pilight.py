@@ -112,7 +112,7 @@ class Client(threading.Thread):
         if ('success' not in answer['status']):
             raise IOError(
                 'Connection to the pilight daemon failed. Reply %s',
-                answer, answer)
+                answer)
 
    
     def set_callback(self, function):
