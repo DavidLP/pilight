@@ -163,9 +163,9 @@ class Client(threading.Thread):
             # FIXME handle lost connection -> reconnect
             except (socket.timeout, ValueError):  # No data
                 pass
-			except socket.error:
-				self.connect_sender
-				self.connect_receiver
+            except socket.error:
+                self.connect_sender
+                self.connect_receiver
         logging.debug('Pilight receiver thread stopped')
 
     def send_code(self, data, acknowledge=True):
