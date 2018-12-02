@@ -7,6 +7,7 @@ import threading
 import socket
 import json
 import logging
+import time
 
 
 class Client(threading.Thread):
@@ -33,6 +34,9 @@ class Client(threading.Thread):
     """
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
+
+    # How many seconds to wait before trying to reconnect
+    RECONNECT_WAIT_SEC = 1
 
     def __init__(self, host='127.0.0.1', port=5000, timeout=1,
                  recv_ident=None, recv_codes_only=True, veto_repeats=True):
@@ -131,7 +135,38 @@ class Client(threading.Thread):
         self.send_socket.shutdown(socket.SHUT_RDWR)
         self.send_socket.close()
 
-    def run(self):  # Thread for receiving data from pilight
+    def run(self):
+        # "Watchdog" thread
+        watchdog_thread = threading.Thread(target=self._watchdog, name="watchdog")
+        try:
+            watchdog_thread.start()
+            self._run()
+        finally:
+            self.shutdown.set()
+            watchdog_thread.join()
+        return 0
+
+    def try_sendall_with_reconnect(self, message):
+        try:
+            self.send_socket.sendall(message)
+        except(socket.error):
+            time.sleep(self.RECONNECT_WAIT_SEC)
+            self.connect_sender()
+            self.send_socket.send(message)
+
+    def _watchdog(self):
+        # check pilight connection every 100ms
+        while True:
+            time.sleep(0.100)
+            self.try_sendall_with_reconnect('HEART\n'.encode())
+            answer = self.send_socket.recv(1024).decode()
+            if not (answer.startswith('BEAT')):
+                logging.debug('Heartbeat lost, reconnecting...')
+                time.sleep(self.RECONNECT_WAIT_SEC)
+                self.connect_sender()
+                self.connect_receiver()
+
+    def _run(self): # Thread for receiving data from pilight
         """Receiver thread function called on Client.start()."""
         logging.debug('Pilight receiver thread started')
         if not self.callback:
@@ -158,12 +193,8 @@ class Client(threading.Thread):
                 # Sometimes more than one JSON object is in the stream thus
                 # split at \n
                 with self._lock:
-                    try:
-                        messages = self.receive_socket.recv(1024).splitlines()
-                    except (socket.error, e):
-                        self.connect_sender
-                        self.connect_receiver
-                handle_messages(messages)
+                    messages = self.receive_socket.recv(1024).splitlines()
+                    handle_messages(messages)
             # FIXME handle lost connection -> reconnect
             except (socket.timeout, ValueError):  # No data
                 pass
@@ -190,11 +221,7 @@ class Client(threading.Thread):
         }
 
         # If connection is closed IOError is raised
-        try:
-            self.send_socket.sendall(json.dumps(message).encode())
-        except socket.error:
-            self.connect_sender()
-            return
+        self.try_sendall_with_reconnect(json.dumps(message).encode())
         
         if acknowledge:  # Check if command is acknowledged by pilight daemon
             messages = self.send_socket.recv(1024).splitlines()
