@@ -1,6 +1,6 @@
 """Example how to handle codes received by the pilight-daemon.
 
-A running pilight-daemon is neededed.
+A running pilight-daemon is needed.
 """
 
 import time
