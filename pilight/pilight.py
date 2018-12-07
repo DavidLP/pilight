@@ -142,7 +142,7 @@ class Client(threading.Thread):
             watchdog_thread.start()
             self._run()
         finally:
-            self.shutdown.set()
+            self._stop_thread.set()
             watchdog_thread.join()
         return 0
 
